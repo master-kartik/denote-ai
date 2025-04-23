@@ -8,7 +8,6 @@ import {
   SidebarMenuItem,
   SidebarMenuButton, 
   SidebarGroupContent,
-  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { NotebookPen, LogOut, Home, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";

@@ -8,7 +8,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/features/layout/app-sidebar";
 
 function App() {
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<unknown>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchSession = async () => {
