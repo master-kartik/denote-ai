@@ -1,16 +1,31 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Project Overview
+
+This project is a note-taking application built with Next.js. It allows users to create, edit, delete, and summarize notes using an AI-powered summary feature. The application uses React Query for data fetching and caching, and provides a responsive UI for managing notes.
+
+### Key Features
+
+- **Create, edit, and delete notes**: Users can manage their notes with a simple and intuitive interface.
+- **AI Summary**: For any note, users can generate an AI-powered summary of the note's description.
+- **Search**: Quickly filter notes by title or description.
+- **Responsive design**: Works well on both desktop and mobile devices.
+
 ## Getting Started
 
 First, run the development server:
 
 ```bash
+npm install
 npm run dev
 # or
+yarn install
 yarn dev
 # or
+pnpm install
 pnpm dev
 # or
+bun install
 bun dev
 ```
 
