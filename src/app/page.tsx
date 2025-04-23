@@ -66,7 +66,7 @@ function App() {
         <SidebarProvider>
           <AppSidebar />
           <>
-            <NoteManager session={session} />
+            {session && <NoteManager session={session} />}
           </>
         </SidebarProvider>
       ) : (
