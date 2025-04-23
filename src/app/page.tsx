@@ -6,9 +6,11 @@ import NoteManager from "@/features/notes/note-manager";
 import { supabase } from "@/lib/supabase-client";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/features/layout/app-sidebar";
+import { Session } from "@supabase/supabase-js";
 
 function App() {
-  const [session, setSession] = useState<unknown>(null);
+
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchSession = async () => {
@@ -27,8 +29,8 @@ function App() {
     fetchSession();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
+      (_event, sessionArg: Session | null) => {
+        setSession(sessionArg);
       }
     );
 
