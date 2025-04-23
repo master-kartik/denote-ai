@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { supabase } from "../supabase-client";
+import { supabase } from "@/lib/supabase-client";
 import { Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, LogOut } from "lucide-react";
-import { summarizeNote } from '@/app/actions/summarize';
-import NotesGrid from "@/components/notes-grid";
+import { summarizeNote } from "@/app/actions/summarize";
+import NotesGrid from "./notes-grid";
 import NoteDialog from "./note-dialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -16,14 +16,17 @@ export interface Note {
   created_at: string;
 }
 
-// Fetch notes function
-async function fetchNotes() {
-  const { data, error } = await supabase.from("notes").select("*").order("created_at", { ascending: false });
+async function fetchNotes(email?: string) {
+  if (!email) return [];
+  const { data, error } = await supabase
+    .from("notes")
+    .select("*")
+    .eq("email", email)
+    .order("created_at", { ascending: false });
   if (error) throw error;
   return data as Note[];
 }
 
-// Add, update, delete functions
 async function addNote(note: Partial<Note>) {
   const { data, error } = await supabase.from("notes").insert([note]).select().single();
   if (error) throw error;
@@ -55,33 +58,33 @@ function NoteManager({ session }: { session: Session }) {
   const [isSummarizing, setIsSummarizing] = useState(false);
 
   const queryClient = useQueryClient();
+  const userEmail = session.user.email;
 
-  // Fetch notes
   const { data: notes = [], isLoading, error } = useQuery({
-    queryKey: ["notes"],
-    queryFn: fetchNotes,
+    queryKey: ["notes", userEmail],
+    queryFn: () => fetchNotes(userEmail),
+    enabled: !!userEmail,
   });
 
-  // Mutations
   const addNoteMutation = useMutation({
     mutationFn: addNote,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notes"] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notes", userEmail] }),
   });
 
   const updateNoteMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<Note> }) => updateNote(id, updates),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notes"] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notes", userEmail] }),
   });
 
   const deleteNoteMutation = useMutation({
     mutationFn: deleteNote,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notes"] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notes", userEmail] }),
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newNote.title && !newNote.description) return;
-    addNoteMutation.mutate({ ...newNote, email: session.user.email } as Partial<Note> & { email: string });
+    addNoteMutation.mutate({ ...newNote, email: userEmail } as Partial<Note> & { email: string });
     setNewNote({ title: "", description: "" });
   };
 
@@ -121,7 +124,6 @@ function NoteManager({ session }: { session: Session }) {
           <span>{"Sign Out"}</span>
         </Button>
       </div>
-      {/* Search and Add Note Bar */}
       <div className="flex items-center gap-4 mb-6">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -144,9 +146,18 @@ function NoteManager({ session }: { session: Session }) {
           <Plus className="h-4 w-4" /> Add Note
         </Button>
       </div>
-      {/* Notes Grid */}
-      <NotesGrid notes={filteredNotes} onNoteClick={handleNoteClick} searchTerm={searchTerm} />
-      {/* Note Dialog */}
+      {error && (
+        <div className="text-red-500 text-center mb-4" role="alert">
+          Failed to load notes. Please try again later.
+        </div>
+      )}
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <span className="animate-spin w-6 h-6 border-4 border-t-transparent border-gray-400 rounded-full" aria-label="Loading notes" />
+        </div>
+      ) : (
+        <NotesGrid notes={filteredNotes} onNoteClick={handleNoteClick} searchTerm={searchTerm} />
+      )}
       <NoteDialog
         isOpen={isDialogOpen}
         onOpenChange={(open) => {
@@ -171,7 +182,7 @@ function NoteManager({ session }: { session: Session }) {
             setIsDialogOpen(false);
           }
         }}
-        onAiSummary={handleAiSummary}
+        onAiSummary={(desc) => handleAiSummary(desc)}
         isSummarizing={isSummarizing}
       />
     </div>

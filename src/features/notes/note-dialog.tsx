@@ -15,7 +15,7 @@ interface NoteDialogProps {
   setNewNote: React.Dispatch<React.SetStateAction<{ title: string; description: string }>>;
   onSubmit: (e: React.FormEvent) => void;
   onUpdate: () => void;
-  onDelete: (id: number) => void;
+  onDelete: () => void;
   onAiSummary: (description: string) => void;
   isSummarizing: boolean;
 }
@@ -44,6 +44,7 @@ const NoteDialog: React.FC<NoteDialogProps> = ({
       <form
         onSubmit={selectedNote ? (e) => { e.preventDefault(); onUpdate(); } : onSubmit}
         className="space-y-4 my-4"
+        autoComplete="off"
       >
         <Input
           placeholder="Note Title"
@@ -54,6 +55,8 @@ const NoteDialog: React.FC<NoteDialogProps> = ({
               : setNewNote(prev => ({ ...prev, title: e.target.value }))
           }
           className="text-lg font-medium"
+          maxLength={100}
+          aria-label="Note Title"
         />
         <Textarea
           placeholder="Note Description"
@@ -64,6 +67,8 @@ const NoteDialog: React.FC<NoteDialogProps> = ({
               : setNewNote(prev => ({ ...prev, description: e.target.value }))
           }
           className="min-h-[200px]"
+          maxLength={2000}
+          aria-label="Note Description"
         />
         <DialogFooter className="flex flex-wrap sm:flex-nowrap gap-2">
           {selectedNote ? (
@@ -71,23 +76,30 @@ const NoteDialog: React.FC<NoteDialogProps> = ({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => selectedNote && onAiSummary(selectedNote.description)}
+                onClick={() => selectedNote && onAiSummary(editNote.description)}
                 disabled={isSummarizing}
                 className="flex items-center gap-2"
+                aria-label="AI Summary"
               >
                 <Wand className="h-4 w-4" />
-                {isSummarizing ? "Summarizing..." : "AI Summary"}
+                {isSummarizing ? (
+                  <>
+                    Summarizing...
+                    <span className="ml-2 animate-spin inline-block w-4 h-4 border-2 border-t-transparent border-gray-400 rounded-full" />
+                  </>
+                ) : "AI Summary"}
               </Button>
               <div className="flex gap-2 ml-auto">
                 <Button
                   type="button"
                   variant="destructive"
-                  onClick={() => selectedNote && onDelete(Number(selectedNote.id))}
+                  onClick={onDelete}
                   className="flex items-center gap-2"
+                  aria-label="Delete Note"
                 >
                   <Trash2 className="h-4 w-4" /> Delete
                 </Button>
-                <Button type="submit" className="flex items-center gap-2">
+                <Button type="submit" className="flex items-center gap-2" aria-label="Save Changes">
                   <Save className="h-4 w-4" /> Save Changes
                 </Button>
               </div>
@@ -97,6 +109,7 @@ const NoteDialog: React.FC<NoteDialogProps> = ({
               type="submit"
               disabled={!newNote.title && !newNote.description}
               className="ml-auto"
+              aria-label="Create Note"
             >
               Create Note
             </Button>

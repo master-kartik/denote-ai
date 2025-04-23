@@ -1,12 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
 import "@/app/globals.css";
-import { Auth } from "@/components/auth";
-import NoteManager from "@/components/note-manager";
-import { supabase } from "@/supabase-client";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
-import { AppSidebar } from "@/components/app-sidebar"
-
+import { Auth } from "@/features/auth/auth-form";
+import NoteManager from "@/features/notes/note-manager";
+import { supabase } from "@/lib/supabase-client";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/features/layout/app-sidebar";
 
 function App() {
   const [session, setSession] = useState<any>(null);
@@ -37,7 +36,6 @@ function App() {
       authListener.subscription.unsubscribe();
     };
   }, []);
-
 
   if (loading) {
     return (

@@ -10,7 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect, FormEvent, ChangeEvent } from "react";
-import { supabase } from "@/supabase-client";
+import { supabase } from "@/lib/supabase-client";
 
 type GoogleLoginButtonProps = {
   label: string;
@@ -30,6 +30,7 @@ function GoogleLoginButton({ label, onClick }: GoogleLoginButtonProps) {
     </Button>
   );
 }
+
 type EmailPasswordFormProps = {
   isSignUp: boolean;
   email: string;
@@ -108,6 +109,7 @@ export function Auth({ className, ...props }: React.ComponentProps<"div">) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loginLabel, setLoginLabel] = useState("Login");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     setLoginLabel(isSignUp ? "Sign Up" : "Login");
@@ -118,19 +120,20 @@ export function Auth({ className, ...props }: React.ComponentProps<"div">) {
       provider: "google",
     });
     if (error) {
-      console.error("Error signing in with Google:", error.message);
+      setErrorMsg("Google sign-in failed");
     }
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setErrorMsg(null);
     if (isSignUp) {
       const { error: signUpError } = await supabase.auth.signUp({
         email,
         password,
       });
       if (signUpError) {
-        console.error("Error signing up:", signUpError.message);
+        setErrorMsg("Sign up failed");
         return;
       }
     } else {
@@ -139,7 +142,7 @@ export function Auth({ className, ...props }: React.ComponentProps<"div">) {
         password,
       });
       if (signInError) {
-        console.error("Error signing in:", signInError.message);
+        setErrorMsg("Sign in failed");
         return;
       }
     }
@@ -164,6 +167,11 @@ export function Auth({ className, ...props }: React.ComponentProps<"div">) {
                 Or continue with
               </span>
             </div>
+            {errorMsg && (
+              <div className="text-red-500 text-center" role="alert">
+                {errorMsg}
+              </div>
+            )}
             <EmailPasswordForm
               isSignUp={isSignUp}
               email={email}
