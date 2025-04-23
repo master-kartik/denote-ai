@@ -82,7 +82,7 @@ const NoteDialog: React.FC<NoteDialogProps> = ({
                 <Button
                   type="button"
                   variant="destructive"
-                  onClick={() => selectedNote && onDelete(selectedNote.id)}
+                  onClick={() => selectedNote && onDelete(Number(selectedNote.id))}
                   className="flex items-center gap-2"
                 >
                   <Trash2 className="h-4 w-4" /> Delete

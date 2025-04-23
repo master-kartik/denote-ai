@@ -7,12 +7,39 @@ import { Search, Plus, LogOut } from "lucide-react";
 import { summarizeNote } from '@/app/actions/summarize';
 import NotesGrid from "@/components/notes-grid";
 import NoteDialog from "./note-dialog";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export interface Note {
-  id: number;
+  id: string;
   title: string;
   description: string;
   created_at: string;
+}
+
+// Fetch notes function
+async function fetchNotes() {
+  const { data, error } = await supabase.from("notes").select("*").order("created_at", { ascending: false });
+  if (error) throw error;
+  return data as Note[];
+}
+
+// Add, update, delete functions
+async function addNote(note: Partial<Note>) {
+  const { data, error } = await supabase.from("notes").insert([note]).select().single();
+  if (error) throw error;
+  return data as Note;
+}
+
+async function updateNote(id: string, updates: Partial<Note>) {
+  const { data, error } = await supabase.from("notes").update(updates).eq("id", id).select().single();
+  if (error) throw error;
+  return data as Note;
+}
+
+async function deleteNote(id: string) {
+  const { error } = await supabase.from("notes").delete().eq("id", id);
+  if (error) throw error;
+  return id;
 }
 
 const handleSignOut = async () => {
@@ -21,71 +48,41 @@ const handleSignOut = async () => {
 
 function NoteManager({ session }: { session: Session }) {
   const [newNote, setNewNote] = useState({ title: "", description: "" });
-  const [notes, setNotes] = useState<Note[]>([]);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [editNote, setEditNote] = useState<{ title: string; description: string }>({ title: "", description: "" });
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSummarizing, setIsSummarizing] = useState(false);
 
-  const fetchNotes = async () => {
-    const { error, data } = await supabase
-      .from("notes")
-      .select("*")
-      .order("created_at", { ascending: false });
+  const queryClient = useQueryClient();
 
-    if (error) {
-      console.error("Error reading notes:", error.message);
-      return;
-    }
-    setNotes(data);
-  };
+  // Fetch notes
+  const { data: notes = [], isLoading, error } = useQuery({
+    queryKey: ["notes"],
+    queryFn: fetchNotes,
+  });
 
-  const deleteNote = async (id: number) => {
-    const { error } = await supabase.from("notes").delete().eq("id", id);
-    if (error) {
-      console.error("Error deleting note:", error.message);
-      return;
-    }
-    await fetchNotes();
-    if (selectedNote?.id === id) {
-      setSelectedNote(null);
-      setIsDialogOpen(false);
-    }
-  };
+  // Mutations
+  const addNoteMutation = useMutation({
+    mutationFn: addNote,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notes"] }),
+  });
 
-  const updateNote = async () => {
-    if (!selectedNote) return;
-    const { error } = await supabase
-      .from("notes")
-      .update({
-        title: editNote.title,
-        description: editNote.description,
-      })
-      .eq("id", selectedNote.id);
+  const updateNoteMutation = useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<Note> }) => updateNote(id, updates),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notes"] }),
+  });
 
-    if (error) {
-      console.error("Error updating note:", error.message);
-      return;
-    }
-    await fetchNotes();
-    setIsDialogOpen(false);
-  };
+  const deleteNoteMutation = useMutation({
+    mutationFn: deleteNote,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notes"] }),
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newNote.title && !newNote.description) return;
-    const { error } = await supabase
-      .from("notes")
-      .insert({ ...newNote, email: session.user.email })
-      .select()
-      .single();
-    if (error) {
-      console.error("Error adding note:", error.message);
-      return;
-    }
+    addNoteMutation.mutate({ ...newNote, email: session.user.email } as Partial<Note> & { email: string });
     setNewNote({ title: "", description: "" });
-    await fetchNotes();
   };
 
   const handleNoteClick = (note: Note) => {
@@ -114,34 +111,6 @@ function NoteManager({ session }: { session: Session }) {
     note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     note.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  useEffect(() => {
-    fetchNotes();
-  }, []);
-
-  useEffect(() => {
-    const channel = supabase.channel("notes-channel");
-    channel
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "notes" },
-        () => fetchNotes()
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "notes" },
-        () => fetchNotes()
-      )
-      .on(
-        "postgres_changes",
-        { event: "DELETE", schema: "public", table: "notes" },
-        () => fetchNotes()
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
 
   return (
     <div className="container mx-auto py-6 px-4 max-w-6xl">
@@ -190,8 +159,18 @@ function NoteManager({ session }: { session: Session }) {
         newNote={newNote}
         setNewNote={setNewNote}
         onSubmit={handleSubmit}
-        onUpdate={updateNote}
-        onDelete={deleteNote}
+        onUpdate={() => {
+          if (selectedNote) {
+            updateNoteMutation.mutate({ id: selectedNote.id, updates: editNote });
+            setIsDialogOpen(false);
+          }
+        }}
+        onDelete={() => {
+          if (selectedNote) {
+            deleteNoteMutation.mutate(selectedNote.id);
+            setIsDialogOpen(false);
+          }
+        }}
         onAiSummary={handleAiSummary}
         isSummarizing={isSummarizing}
       />
