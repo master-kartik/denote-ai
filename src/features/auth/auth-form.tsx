@@ -32,7 +32,6 @@ function GoogleLoginButton({ label, onClick }: GoogleLoginButtonProps) {
 }
 
 type EmailPasswordFormProps = {
-  isSignUp: boolean;
   email: string;
   password: string;
   onEmailChange: (e: ChangeEvent<HTMLInputElement>) => void;
@@ -42,7 +41,6 @@ type EmailPasswordFormProps = {
 };
 
 function EmailPasswordForm({
-  isSignUp,
   email,
   password,
   onEmailChange,
@@ -173,7 +171,6 @@ export function Auth({ className, ...props }: React.ComponentProps<"div">) {
               </div>
             )}
             <EmailPasswordForm
-              isSignUp={isSignUp}
               email={email}
               password={password}
               onEmailChange={(e) => setEmail(e.target.value)}
